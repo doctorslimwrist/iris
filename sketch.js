@@ -1,9 +1,6 @@
-let record = false;
-
-let startingFrame   = 60;
-let recordingLength = 5; // in seconds
-
-let ballCount = 200;
+let record = false; 
+let recordLength = 10*60
+let entityCount = 20;
 
 let x = [];
 let y = [];
@@ -11,7 +8,7 @@ let size = [];
 let xSpeed = [];
 let ySpeed = [];
 let r = [];
-let g = [];
+let g = []; 
 let b = [];
 
 let resolutionX = 360;
@@ -21,59 +18,80 @@ function setup(){
     // put setup code here
     createCanvas(windowWidth, windowHeight);
 
-    for (let i =0; i < ballCount; i++){
-        x[i] = randomGaussian(0.5*width, 50);
-        y[i] = randomGaussian(0.75*height, 50);
+    for (let i =0; i < entityCount; i++){
+        x[i] = randomGaussian(0.5*width, 70);
+        y[i] = randomGaussian(0.5*height, 50);
+    
+        xSpeed[i] = random(-0.7, 0.7);
+        ySpeed[i] = random(-1.1, -0.5);
 
-        xSpeed[i] = random(-1, 1);
-        ySpeed[i] = random(-1, 1);
-
-        size[i] = random(20,40);
-        r[i] = random(220,255);
-        g[i] = random(80,140);
+        size[i] = randomGaussian(15, 5);
+        r[i] = random(140,155);
+        g[i] = random(150,180);
         b[i] = random(0,40);
     }
 }
 
 function draw(){
-    // put drawing code here
-    if (record && frameCount === startingFrame){
-        capturer.start()
+    if (record && frameCount === 1){
+        capturer.start();
     }
+    background(5, 65);
+    let blurStrength = 3.5; // Adjust blur strength as needed
 
-    background(35, 60);
-
-    blendMode(BLEND);
-    for(let i=0; i < ballCount; i++){
+    // blendMode(BLEND);
+    for(let i=0; i < entityCount; i++){
+        // Apply some noise to the speed to create smoother movement
+        let noiseX = noise(x[i] * 0.02, y[i] * 0.02) * 2 - 1;
+        let noiseY = noise(y[i] * 0.02, x[i] * 0.02) * 2 - 1;
         
-        x[i] = x[i] + xSpeed[i]
-        y[i] = y[i] + -randomGaussian(0.6, 1)
+        x[i] += xSpeed[i] + noiseX;
+        y[i] += ySpeed[i] + noiseY;
+
+        // Add damping to the speeds to simulate friction
+        //xSpeed[i] *= randomGaussian(0.99, 0.02);
+        //ySpeed[i] *= randomGaussian(0.99, 0.032);
 
         // make the balls "bounce" off the edge
         if(x[i] < 0 || x[i] > width){
-            xSpeed[i] = -xSpeed[i]
+            xSpeed[i] = -xSpeed[i];
         }
-        // 
+        
         if(y[i] < 0 || y[i] > height){
-            ySpeed[i] = -ySpeed[i]
+            ySpeed[i] = -ySpeed[i];
         }
 
-        fill(r[i], g[i], b[i], 60);
+        //r[i] += randomGaussian(-0.2,0.1);
+        //g[i] += randomGaussian(-0.2,0.1);
+        //b[i] += randomGaussian(0.2,0.5)
+        noStroke();
+        
+        fill(r[i], g[i], b[i]);
         ellipse(x[i], y[i], random(0.4,0.45)*size[i], random(0.4,0.5)*size[i]);
         
-        fill(r[i], g[i], b[i], random(4,20));
-        noStroke();
-        ellipse(x[i], y[i], size[i], size[i]);
-     
+        
+         for (let blur = blurStrength; blur > 0; blur--) {
+            let alpha = map(blur, blurStrength, 0, 2, 20);
+            fill(r[i], g[i], b[i], alpha);
+            noStroke();
+            ellipse(x[i], y[i], size[i] + blur*random(2,15));
+          } 
+
+        
     }
 
-    if (record && frameCount < startingFrame + 60*recordingLength) {
-        capturer.capture(canvas)
-    } else if (record && frameCount === startingFrame + 60*recordingLength) {
-        capturer.save()
-        capturer.stop()
+    if (record && frameCount < recordLength) {
+        capturer.capture(canvas);
+    } else if (record && frameCount === recordLength) {
+        capturer.save();
+        capturer.stop();
     }
 }
+// Easing function
+function easeInOut(t, amount) {
+    return t < 0.5 ? 4 * t * t * t : 1 - pow(-2 * t + 2, 3) / 2;
+}
+
 
 function windowResized(){
     resizeCanvas(windowWidth, windowHeight);
